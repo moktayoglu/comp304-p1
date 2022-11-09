@@ -6,6 +6,9 @@
 #include <sys/wait.h>
 #include <termios.h> // termios, TCSANOW, ECHO, ICANON
 #include <unistd.h>
+
+#include <fcntl.h>
+
 const char *sysname = "shellax";
 
 enum return_codes {
@@ -34,9 +37,9 @@ void print_command(struct command_t *command) {
   printf("\tIs Background: %s\n", command->background ? "yes" : "no");
   printf("\tNeeds Auto-complete: %s\n", command->auto_complete ? "yes" : "no");
   printf("\tRedirects:\n");
-  for (i = 0; i < 3; i++)
-    printf("\t\t%d: %s\n", i,
-           command->redirects[i] ? command->redirects[i] : "N/A");
+  for (i = 0; i < 3; i++){
+    printf("\t\t%d: %s\n", i,command->redirects[i] ? command->redirects[i] : "N/A");
+  }
   printf("\tArguments (%d):\n", command->arg_count);
   for (i = 0; i < command->arg_count; ++i)
     printf("\t\tArg %d: %s\n", i, command->args[i]);
@@ -113,9 +116,11 @@ int parse_command(char *buf, struct command_t *command) {
   command->args = (char **)malloc(sizeof(char *));
 
   int redirect_index;
+  int target_saved = -1;
   int arg_index = 0;
   char temp_buf[1024], *arg;
   while (1) {
+ 
     // tokenize input on splitters
     pch = strtok(NULL, splitters);
     if (!pch)
@@ -159,6 +164,8 @@ int parse_command(char *buf, struct command_t *command) {
     redirect_index = -1;
     if (arg[0] == '<')
       redirect_index = 0;
+      
+
     if (arg[0] == '>') {
       if (len > 1 && arg[1] == '>') {
         redirect_index = 2;
@@ -187,6 +194,8 @@ int parse_command(char *buf, struct command_t *command) {
     strcpy(command->args[arg_index++], arg);
   }
   command->arg_count = arg_index;
+
+ 
   return 0;
 }
 
@@ -287,6 +296,7 @@ int prompt(struct command_t *command) {
   return SUCCESS;
 }
 int process_command(struct command_t *command);
+void redirection_part2(struct command_t *command);
 int main() {
   while (1) {
     struct command_t *command = malloc(sizeof(struct command_t));
@@ -324,10 +334,14 @@ int process_command(struct command_t *command) {
       return SUCCESS;
     }
   }
-
+  
   pid_t pid = fork();
   if (pid == 0) // child
   {
+    print_command(command);
+
+    redirection_part2(command);
+    
     /// This shows how to do exec with environ (but is not available on MacOs)
     // extern char** environ; // environment variables
     // execvpe(command->name, command->args, environ); // exec+args+path+environ
@@ -336,6 +350,7 @@ int process_command(struct command_t *command) {
     // add a NULL argument to the end of args, and the name to the beginning
     // as required by exec
 
+    
     // increase args size by 2
     command->args = (char **)realloc(
         command->args, sizeof(char *) * (command->arg_count += 2));
@@ -349,24 +364,63 @@ int process_command(struct command_t *command) {
     // set args[arg_count-1] (last) to NULL
     command->args[command->arg_count - 1] = NULL;
 
+
+    
     // TODO: do your own exec with path resolving using execv()
     // do so by replacing the execvp call below
     //execvp(command->name, command->args); // exec+args+path
     //PART 1
-    print_command(command);
+    //print_command(command);
     char bin_dir[100];
     strcpy(bin_dir, "/usr/bin/"); //copy for bin direction
     strcat(bin_dir, command->name);
     execv(bin_dir, command->args);
+    
+    
     exit(0);
   } else {
+  
     // TODO: implement background processes here
     wait(0); // wait for child process to finish
+    
+    
     return SUCCESS;
   }
 
-  // TODO: your implementation here
 
   printf("-%s: %s: command not found\n", sysname, command->name);
   return UNKNOWN;
 }
+
+  // TODO: your implementation here
+  void redirection_part2(struct command_t *command){
+    //Dont put spaces after redirection symbols !!!!
+    if (command->redirects[0]!= NULL){ //for <
+    	int in = open(command->redirects[0], O_RDONLY, 0644);
+    	if(in == -1){
+    		printf("Error opening redirect source file!\n");
+    	}
+    	dup2(in,STDIN_FILENO); //copy file to stdin
+    	close(in);
+    }
+    
+    if (command->redirects[1] != NULL){ //for > 
+    	int out = open(command->redirects[1], O_WRONLY | O_CREAT | O_TRUNC, 0644);
+    	if(out == -1){
+    		printf("Error opening redirect target file!\n");
+    	}
+    	dup2(out, STDOUT_FILENO); //copy file to stdout
+    	close(out);
+    }
+    
+    if (command->redirects[2] != NULL){ //for >>
+    	int out = open(command->redirects[2], O_WRONLY | O_CREAT | O_APPEND, 0644);
+    	if(out == -1){
+    		printf("Error opening redirect target file!\n");
+    	}
+    	dup2(out, STDOUT_FILENO); //copy file to stdout
+    	close(out);
+    }
+    
+    
+  }
