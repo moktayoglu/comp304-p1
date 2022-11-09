@@ -44,8 +44,8 @@ void print_command(struct command_t *command) {
   for (i = 0; i < command->arg_count; ++i)
     printf("\t\tArg %d: %s\n", i, command->args[i]);
   if (command->next) {
-    printf("\tPiped to:\n");
-    print_command(command->next);
+    printf("\tPiped to: %s\n", command->next->name);
+    //print_command(command->next);
   }
 }
 /**
@@ -334,11 +334,52 @@ int process_command(struct command_t *command) {
       return SUCCESS;
     }
   }
+  int num_pipes = 0;
+  int status;
+  //PART 2 - piping
+  if (command->next){
+    struct command_t *tmp = malloc(sizeof(struct command_t));
+    memcpy(tmp, command, sizeof(struct command_t));
+    
+    while(tmp->next){
+    	num_pipes++;
+    	tmp = tmp->next;
+    }
+ 
+  }
+  printf("%d\n",num_pipes);
+  int fd_pipes[2*num_pipes];
   
+  for(int i=0; i<num_pipes; i++){
+  	if (pipe(fd_pipes + i*2)==-1){
+  	     printf("Error creating the pipe!\n");
+  	     return UNKNOWN;
+  	}
+  }
+  
+  for(int i=0; i<num_pipes+1; i++){
+  
+ 
   pid_t pid = fork();
   if (pid == 0) // child
   {
     print_command(command);
+    printf("%d\n",i);
+    //if not last command
+    if(i!=num_pipes){
+    if(command->next){
+        dup2(fd_pipes[2*i + 1], STDOUT_FILENO);
+     }
+}
+     //if not first command, without a read 
+    if(i != 0 ){
+        dup2(fd_pipes[2*i-2], STDIN_FILENO);
+     }
+
+
+     for(int j = 0; j < 2*num_pipes; j++){
+          close(fd_pipes[j]);
+     }
 
     redirection_part2(command);
     
@@ -378,16 +419,29 @@ int process_command(struct command_t *command) {
     
     
     exit(0);
-  } else {
-  
-    // TODO: implement background processes here
-    wait(0); // wait for child process to finish
     
+  } 
+   if(command->next){
+    	command = command->next;
+    	continue;
+    }
     
-    return SUCCESS;
   }
+    // TODO: implement background processes here
+    
+    //wait(0);
 
-
+    //wait(0); // wait for child process to finish
+    for(int j = 0; j < 2 * num_pipes; j++){
+        close(fd_pipes[j]);
+    }
+    for(int k = 0; k < num_pipes +1; k++){
+    	wait(&status);
+    }
+    return SUCCESS;
+  
+ 
+  
   printf("-%s: %s: command not found\n", sysname, command->name);
   return UNKNOWN;
 }
