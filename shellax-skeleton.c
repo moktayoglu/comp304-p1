@@ -7,7 +7,10 @@
 #include <termios.h> // termios, TCSANOW, ECHO, ICANON
 #include <unistd.h>
 
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <fcntl.h>
+#include <dirent.h>
 
 const char *sysname = "shellax";
 
@@ -297,6 +300,7 @@ int prompt(struct command_t *command) {
 }
 int process_command(struct command_t *command);
 void redirection_part2(struct command_t *command);
+int chatroom(struct command_t *command);
 int main() {
   while (1) {
     struct command_t *command = malloc(sizeof(struct command_t));
@@ -333,6 +337,12 @@ int process_command(struct command_t *command) {
         printf("-%s: %s: %s\n", sysname, command->name, strerror(errno));
       return SUCCESS;
     }
+  }
+  
+  if(strcmp(command->name,"chatroom") == 0){
+  	chatroom(command);
+  	return SUCCESS;
+  
   }
   int num_pipes = 0;
   int status;
@@ -429,13 +439,10 @@ int process_command(struct command_t *command) {
   }
     // TODO: implement background processes here
     
-    //wait(0);
-
-    //wait(0); // wait for child process to finish
     for(int j = 0; j < 2 * num_pipes; j++){
         close(fd_pipes[j]);
     }
-    for(int k = 0; k < num_pipes +1; k++){
+    for(int k = 0; k < num_pipes +1; k++){ // wait for child process to finish
     	wait(&status);
     }
     return SUCCESS;
@@ -447,12 +454,12 @@ int process_command(struct command_t *command) {
 }
 
   // TODO: your implementation here
-  void redirection_part2(struct command_t *command){
-    //Dont put spaces after redirection symbols !!!!
-    if (command->redirects[0]!= NULL){ //for <
-    	int in = open(command->redirects[0], O_RDONLY, 0644);
-    	if(in == -1){
-    		printf("Error opening redirect source file!\n");
+void redirection_part2(struct command_t *command){
+   //Dont put spaces after redirection symbols !!!!
+   if (command->redirects[0]!= NULL){ //for <
+     int in = open(command->redirects[0], O_RDONLY, 0644);
+     if(in == -1){
+    	  printf("Error opening redirect source file!\n");
     	}
     	dup2(in,STDIN_FILENO); //copy file to stdin
     	close(in);
@@ -478,3 +485,108 @@ int process_command(struct command_t *command) {
     
     
   }
+  
+
+  
+ int chatroom(struct command_t *command){
+    char chatroom_dir[100];
+    strcpy(chatroom_dir, "/tmp");
+    //create tmp folder if doesnt exist
+    if (mkdir(chatroom_dir,S_IRWXU | S_IRWXG | S_IRWXO )==-1){
+    	if(errno !=  EEXIST){
+    	   printf("Chatroom error tmp folder: %s\n",strerror(errno));
+    	}
+    }
+    strcat(chatroom_dir, "/chatroom-");
+    strcat(chatroom_dir, command->args[0]);
+    strcat(chatroom_dir, "/");
+   
+    //create room folder if doesnt exist
+    if (mkdir(chatroom_dir,S_IRWXU | S_IRWXG | S_IRWXO )==-1){
+    	if(errno !=  EEXIST){
+    	    printf("Chatroom error room folder: %s\n",strerror(errno));
+    	}
+    	
+    }
+   
+   char pipe_path[100];
+   //create user named pipe if doesnt exist
+   strcpy(pipe_path, chatroom_dir);
+   strcat(pipe_path, command->args[1]);
+   
+   int fd;
+   char buff_in[140];
+   char buff_out[140];
+   
+   mkfifo(pipe_path,0666);
+   if(errno !=  EEXIST){
+    	 printf("Chatroom error named pipe: %s\n",strerror(errno));
+
+   }
+    
+    
+    printf("Welcome to %s!\n", command->args[0]);
+    pid_t pid =fork();
+    if (pid ==0){
+	    while(1){
+	    	printf("[%s] %s >",command->args[0], command->args[1]);
+	    	
+	    	//get user message
+	    	fgets(buff_in,140,stdin);
+	    	
+	    	char temp_buff[180];
+	    	strcpy(temp_buff, "[");
+	    	strcat(temp_buff, command->args[0]);
+	    	strcat(temp_buff, "] ");
+	    	strcat(temp_buff, command->args[1]);
+	    	strcat(temp_buff, ": ");
+	    	strcat(temp_buff, buff_in);
+	        
+	        
+	        DIR *d;
+	        struct dirent *dir;
+	        d = opendir(chatroom_dir);
+	        char* write_pipe = (char *)malloc(1*sizeof(char));
+	        write_pipe[0] = '\0';
+	        char *temp = (char *)malloc((strlen(write_pipe) + 1)*sizeof(char));
+	        if(d){
+	           while((dir = readdir(d)) != NULL){
+	         
+	        	
+	           	
+	           	if ((strcmp(dir->d_name, command->args[1]) !=0) && dir->d_name[0] != '.'){
+	           		//each time keep the room directory, append the username
+	           	        temp = (char *)realloc(temp,(strlen(chatroom_dir) + strlen(dir->d_name)+1)*sizeof(char));
+	           		strcat(temp,chatroom_dir);
+	           		strcat(temp,dir->d_name);
+	           		printf("%s \n", temp);
+	           		
+	    			fd = open(temp, O_WRONLY);
+	    			//write to other pipes
+	    			write(fd, temp_buff, strlen(temp_buff) +1);
+	    			
+	    			close(fd);
+	    			temp[0] =  '\0';
+	    			
+	           	}
+	           
+	           }
+	           closedir(d);
+	           	
+	        }
+	    	//printf("whiledaız\n");
+    	}
+    	
+    }else{
+    	while(1){
+    		//read from YOUR pipe only
+	    	fd = open(pipe_path,O_RDONLY);
+	    	read(fd, buff_out, sizeof(buff_out));
+	    	printf("%s", buff_out);
+	    	close(fd);
+    	
+    	}
+    }
+   
+ }
+  
