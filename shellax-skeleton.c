@@ -338,11 +338,36 @@ int process_command(struct command_t *command) {
       return SUCCESS;
     }
   }
+
   
   if(strcmp(command->name,"chatroom") == 0){
   	chatroom(command);
   	return SUCCESS;
   
+}
+  if(strcmp(command->name, "uniq") == 0){
+	    FILE    *textfile;
+    char    *text;
+    long    numbytes;
+     
+    textfile = fopen(command->args[0], "r");
+    if(textfile == NULL)
+        return 1;
+     
+    fseek(textfile, 0L, SEEK_END);
+    numbytes = ftell(textfile);
+    fseek(textfile, 0L, SEEK_SET);  
+ 
+    text = (char*)calloc(numbytes, sizeof(char));   
+    if(text == NULL)
+        return 1;
+ 
+    fread(text, sizeof(char), numbytes, textfile);
+    fclose(textfile);
+
+    printf("%s\n", text);
+
+
   }
   int num_pipes = 0;
   int status;
