@@ -301,6 +301,7 @@ int prompt(struct command_t *command) {
 int process_command(struct command_t *command);
 void redirection_part2(struct command_t *command);
 int chatroom(struct command_t *command);
+int pomodoro(struct command_t *command);
 int main() {
   while (1) {
     struct command_t *command = malloc(sizeof(struct command_t));
@@ -341,10 +342,19 @@ int process_command(struct command_t *command) {
 
   
   if(strcmp(command->name,"chatroom") == 0){
-  	chatroom(command);
+  	if(command->arg_count == 3){
+  		chatroom(command);
+  	}
   	return SUCCESS;
-  
-}
+   }
+   
+   if(strcmp(command->name, "pomodoro") == 0){
+   	if(command->arg_count == 3){
+  		pomodoro(command);
+  	}
+   	return SUCCESS;
+   }
+
   if(strcmp(command->name, "uniq") == 0){
 	    FILE    *textfile;
     char    *text;
@@ -614,4 +624,53 @@ void redirection_part2(struct command_t *command){
     }
    
  }
+ 
+  int motivation_prompt(int cycle_no, int max_cycle){
+      if(cycle_no ==1){
+          printf("Good luck working, keep it zen ⊹╰(⌣ʟ⌣)╯⊹\n");
+     } 
+     if(cycle_no == max_cycle){
+	  printf("Last cycle! You got this ᕙ(⌣◡⌣”)ᕗ\n");
+     }
+      
+ }
+ 
+ int pomodoro(struct command_t *command){
+     int num_cycles = atoi(command->args[0]);
+     for(int i=1; i<=num_cycles; i++){
+     	 printf("\aEntering pomodoro cycle %d ... ",i);
+     	 
+     	 motivation_prompt(i, num_cycles);
+	  
+	 pid_t pid = fork();
+	 if(pid == 0){
+	 	int study_min = atoi(command->args[1]);
+	 	//printf("study ID: %d\n",getpid());
+	 	if((study_min-5) >0){
+		      sleep((study_min-5)*60);
+		      printf("Last five minutes... little goes a long way!\n");
+		      sleep(5*60);
+	 	}else{
+	 	      sleep(study_min*60);
+	 	}
+	
+	 	exit(0);
+	 }else{
+	 	wait(0);
+	 	if (i==num_cycles){
+	 	     printf("Great Job! You completed ALL your cycles ( ⌒o⌒)人(⌒-⌒\n");
+	 	}else{
+	 	     printf("Nice... You completed %d cycle(s) \n", i);
+	 	     //printf("break ID: %d\n",getpid());
+	 	     printf("\aNow its time for a %s minute break...\n", command->args[2]);
+	 	     int break_mins = atoi(command->args[2]);
+	 	     sleep(break_mins*60);
+	 	     
+	 	}
+	 }
+	 
+     }
+ }
+ 
+
   
