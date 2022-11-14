@@ -12,7 +12,7 @@
 #include <fcntl.h>
 #include <dirent.h>
 
-#define GAME_ARRAY_SIZE 30
+#define GAME_ARRAY_SIZE 30  //for fibonacci game
 
 const char *sysname = "shellax";
 
@@ -306,7 +306,7 @@ void redirection_part2(struct command_t *command);
 int chatroom(struct command_t *command);
 int pomodoro(struct command_t *command);
 int fib(int n);
-void fibonacci_game(int A[]);
+void fibonacci_game(int arr[]);
 int main() {
   while (1) {
     struct command_t *command = malloc(sizeof(struct command_t));
@@ -390,10 +390,11 @@ int process_command(struct command_t *command) {
            printf(" %s\n", line[i]);
     }
 
-  } if(strcmp(command->name,"fib") == 0){
-     int memory_three[GAME_ARRAY_SIZE] = { 0 };
-        memory_three[1] = 1;
-        fibonacci_game(memory_three);
+  } 
+   if(strcmp(command->name,"fib") == 0){ //fibonacci game
+     int arr[GAME_ARRAY_SIZE] = { 0 }; //initialization
+        arr[1] = 1; 
+        fibonacci_game(arr);
         getchar();
 	      return 0;
 
@@ -695,24 +696,20 @@ void redirection_part2(struct command_t *command){
  int fib(int n) {
 	if (n <= 1)
         return n;
-    return fib(n - 1) + fib(n - 2);
+    return fib(n - 1) + fib(n - 2); //recursive function call
 }
 
- void fibonacci_game(int A[]){
-    printf("\n\nWelcome to the game of Fibonacci!\n\n");
+ void fibonacci_game(int arr[]){
+    printf("\n\nWelcome to the game of Fibonacci!\n\n"); 
+    int n = (rand() % GAME_ARRAY_SIZE); //randomly assign n
 
-    //generate a random int between [0, GAME_ARRAY_SIZE), users will be asked to guess the nth term
-    //srand(time(NULL));
-    int n = (rand() % GAME_ARRAY_SIZE);
-
-    // TODO: get guesses from users and find the closest guess
     int guess1;
     int guess2;
     int num_user=2;
-    int fibonacci = fib(n);
+    int fibonacci = fib(n); //calling fib function
     printf("Guess the %d th term\n",n);
 
-    printf("Number of users %d\n",num_user);
+    printf("Number of users %d\n",num_user); //set to 2
 
     printf("Guess of user 1:");
     fflush(stdout);
@@ -730,7 +727,7 @@ void redirection_part2(struct command_t *command){
        else {
             printf("Congratulations User 1 and User 2! You both win:))\n");
        }
-       printf("The value of fib(%d) is %d", n, fibonacci);
+       printf("The value of fib(%d) is %d", n, fibonacci); 
        printf("\n");
 }
  
