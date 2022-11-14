@@ -12,7 +12,10 @@
 #include <fcntl.h>
 #include <dirent.h>
 
+#define GAME_ARRAY_SIZE 30
+
 const char *sysname = "shellax";
+
 
 enum return_codes {
   SUCCESS = 0,
@@ -302,6 +305,8 @@ int process_command(struct command_t *command);
 void redirection_part2(struct command_t *command);
 int chatroom(struct command_t *command);
 int pomodoro(struct command_t *command);
+int fib(int n);
+void fibonacci_game(int A[]);
 int main() {
   while (1) {
     struct command_t *command = malloc(sizeof(struct command_t));
@@ -355,30 +360,45 @@ int process_command(struct command_t *command) {
    	return SUCCESS;
    }
 
-  if(strcmp(command->name, "uniq") == 0){
-	    FILE    *textfile;
-    char    *text;
-    long    numbytes;
-     
-    textfile = fopen(command->args[0], "r");
-    if(textfile == NULL)
-        return 1;
-     
-    fseek(textfile, 0L, SEEK_END);
-    numbytes = ftell(textfile);
-    fseek(textfile, 0L, SEEK_SET);  
- 
-    text = (char*)calloc(numbytes, sizeof(char));   
-    if(text == NULL)
-        return 1;
- 
-    fread(text, sizeof(char), numbytes, textfile);
-    fclose(textfile);
+  if(strcmp(command->name, "myuniq" ) == 0){
 
-    printf("%s\n", text);
+    char line[20][20]; //to store contents of txt file into array
+    FILE *fptr = NULL; //text file
+    int i = 0;
+    int tot = 0;
 
+    fptr = fopen(command->args[0], "r");
+    if(fptr == NULL) {
+      printf("The file you are looking for does not exist.");
+      return EXIT;
+    }
+    while(fgets(line[i], 20, fptr)) {
+        line[i][strlen(line[i]) - 1] = '\0';
+        i++;
+    }
+    tot = i;
+    int j;
+	printf("\n The content of the file %s  are : \n",command->args[0]);    
+    for(int i = 0; i < tot; ++i){
+       for(j = i+1; j < tot; j++) {
+         if(line[i][strlen(line[i]) - 1] == line[j][strlen(line[i]) - 1]) {
+            break;
+         }
+      }
+
+       if(j == tot)
+           printf(" %s\n", line[i]);
+    }
+
+  } if(strcmp(command->name,"fib") == 0){
+     int memory_three[GAME_ARRAY_SIZE] = { 0 };
+        memory_three[1] = 1;
+        fibonacci_game(memory_three);
+        getchar();
+	      return 0;
 
   }
+
   int num_pipes = 0;
   int status;
   //PART 2 - piping
@@ -671,6 +691,48 @@ void redirection_part2(struct command_t *command){
 	 
      }
  }
+
+ int fib(int n) {
+	if (n <= 1)
+        return n;
+    return fib(n - 1) + fib(n - 2);
+}
+
+ void fibonacci_game(int A[]){
+    printf("\n\nWelcome to the game of Fibonacci!\n\n");
+
+    //generate a random int between [0, GAME_ARRAY_SIZE), users will be asked to guess the nth term
+    //srand(time(NULL));
+    int n = (rand() % GAME_ARRAY_SIZE);
+
+    // TODO: get guesses from users and find the closest guess
+    int guess1;
+    int guess2;
+    int num_user=2;
+    int fibonacci = fib(n);
+    printf("Guess the %d th term\n",n);
+
+    printf("Number of users %d\n",num_user);
+
+    printf("Guess of user 1:");
+    fflush(stdout);
+    scanf("%d",&guess1);
+    printf("Guess of user 2:");
+    fflush(stdout);
+    scanf("%d",&guess2);
+
+       if (abs(fibonacci - guess1) < abs(fibonacci - guess2)) {
+            printf("Congratulations User 1!\n");
+       }
+       else if (abs(fibonacci - guess1)> abs(fibonacci - guess2)) {
+            printf("Congratulations User 2!\n");
+       }
+       else {
+            printf("Congratulations User 1 and User 2! You both win:))\n");
+       }
+       printf("The value of fib(%d) is %d", n, fibonacci);
+       printf("\n");
+}
  
 
   
