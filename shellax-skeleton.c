@@ -41,22 +41,22 @@ struct command_t
 void print_command(struct command_t *command)
 {
   int i = 0;
-  printf("Command: <%s>\n", command->name);
-  printf("\tIs Background: %s\n", command->background ? "yes" : "no");
-  printf("\tNeeds Auto-complete: %s\n", command->auto_complete ? "yes" : "no");
-  printf("\tRedirects:\n");
-  for (i = 0; i < 3; i++)
-  {
-    printf("\t\t%d: %s\n", i, command->redirects[i] ? command->redirects[i] : "N/A");
-  }
-  printf("\tArguments (%d):\n", command->arg_count);
-  for (i = 0; i < command->arg_count; ++i)
-    printf("\t\tArg %d: %s\n", i, command->args[i]);
-  if (command->next)
-  {
-    printf("\tPiped to: %s\n", command->next->name);
+  //printf("Command: <%s>\n", command->name);
+  //printf("\tIs Background: %s\n", command->background ? "yes" : "no");
+  //printf("\tNeeds Auto-complete: %s\n", command->auto_complete ? "yes" : "no");
+  //printf("\tRedirects:\n");
+  //for (i = 0; i < 3; i++)
+  //{
+    //printf("\t\t%d: %s\n", i, command->redirects[i] ? command->redirects[i] : "N/A");
+  //}
+  //printf("\tArguments (%d):\n", command->arg_count);
+  //for (i = 0; i < command->arg_count; ++i)
+    //printf("\t\tArg %d: %s\n", i, command->args[i]);
+  //if (command->next)
+  //{
+    //printf("\tPiped to: %s\n", command->next->name);
     // print_command(command->next);
-  }
+  //}
 }
 /**
  * Release allocated memory of a command
@@ -430,8 +430,8 @@ int process_command(struct command_t *command)
       tmp = tmp->next;
     }
   }
-  printf("Number of pipes %d\n", num_pipes);
-  printf("here\n");
+  //printf("Number of pipes %d\n", num_pipes);
+  //printf("here\n");
   int fd_pipes[2 * num_pipes];
   for (int i = 0; i < num_pipes; i++)
   {
@@ -450,7 +450,7 @@ int process_command(struct command_t *command)
     { 
      
       print_command(command);
-      printf("%d\n", i);
+      //printf("%d\n", i);
       // if not last command
       if (i != num_pipes)
       {
@@ -473,46 +473,49 @@ int process_command(struct command_t *command)
       if (strcmp(command->name, "myuniq") == 0)
       {
        
-        char line[20][20]; // to store contents of txt file into array
+        char line[20][20];
         int i = 0;
         char ch;
         int j = 0;
+
         char buf[400];
         read(STDIN_FILENO , buf ,  sizeof(buf));
-        //printf("%s\n",buf);
         int l = 0;
         char* split_request;
        
         split_request = strtok(buf,"\n");
         while(split_request != NULL)
         {
-         
           strcpy(line[l],split_request);
           l++;
-          i++;
+          i++; //number of lines
           split_request = strtok(NULL,"\n");
 
         }
-        //for debugging
-        //printf("total %d",i); //this is the total number of string in txt file
-        //printf("inital\n");
-        //for(int tot =0;tot<i;tot++){
-          //  printf("%s\n",line[tot]);
-        //}
-         //printf("end\n\n\n\n");
-
+        
         int tot = i;
+        int check = 0; //flag var
+        int count2 = 0; //for number of occurences
+        for (int i = 0; i <= tot; ++i){ 
+          if(check!=0){ 
+               if((command->arg_count>0) && (((strcmp(command->args[0],"-c")==0)) || (strcmp(command->args[0],"--count")==0))){
+                   printf("%d %s\n",count2,line[i-1]);  
+               }
+               else{
+                 printf("%s\n",line[i-1]);
+               }
 
-        int count = 0;
-       
-        int check = 1;
-        for (int i = 0; i < tot; ++i)
-        { 
-          if(check!=0){ //if two consecutive strings are not equal
-               printf("%s\n",line[i]);
+               count2 = 1;
+              
           }
-          check = strcmp(line[i],line[i+1]);
-        } 
+          if(check==0){
+            count2++;
+          }
+          check = strcmp(line[i],line[i+1]); //check if consecutive strings are equal
+        }
+    
+           
+        
       }
 
       redirection_part2(command);
