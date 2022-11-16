@@ -12,18 +12,19 @@
 #include <fcntl.h>
 #include <dirent.h>
 
-#define GAME_ARRAY_SIZE 30  //for fibonacci game
+#define GAME_ARRAY_SIZE 30 // for fibonacci game
 
 const char *sysname = "shellax";
 
-
-enum return_codes {
+enum return_codes
+{
   SUCCESS = 0,
   EXIT = 1,
   UNKNOWN = 2,
 };
 
-struct command_t {
+struct command_t
+{
   char *name;
   bool background;
   bool auto_complete;
@@ -37,21 +38,24 @@ struct command_t {
  * Prints a command struct
  * @param struct command_t *
  */
-void print_command(struct command_t *command) {
+void print_command(struct command_t *command)
+{
   int i = 0;
   printf("Command: <%s>\n", command->name);
   printf("\tIs Background: %s\n", command->background ? "yes" : "no");
   printf("\tNeeds Auto-complete: %s\n", command->auto_complete ? "yes" : "no");
   printf("\tRedirects:\n");
-  for (i = 0; i < 3; i++){
-    printf("\t\t%d: %s\n", i,command->redirects[i] ? command->redirects[i] : "N/A");
+  for (i = 0; i < 3; i++)
+  {
+    printf("\t\t%d: %s\n", i, command->redirects[i] ? command->redirects[i] : "N/A");
   }
   printf("\tArguments (%d):\n", command->arg_count);
   for (i = 0; i < command->arg_count; ++i)
     printf("\t\tArg %d: %s\n", i, command->args[i]);
-  if (command->next) {
+  if (command->next)
+  {
     printf("\tPiped to: %s\n", command->next->name);
-    //print_command(command->next);
+    // print_command(command->next);
   }
 }
 /**
@@ -59,8 +63,10 @@ void print_command(struct command_t *command) {
  * @param  command [description]
  * @return         [description]
  */
-int free_command(struct command_t *command) {
-  if (command->arg_count) {
+int free_command(struct command_t *command)
+{
+  if (command->arg_count)
+  {
     for (int i = 0; i < command->arg_count; ++i)
       free(command->args[i]);
     free(command->args);
@@ -68,7 +74,8 @@ int free_command(struct command_t *command) {
   for (int i = 0; i < 3; ++i)
     if (command->redirects[i])
       free(command->redirects[i]);
-  if (command->next) {
+  if (command->next)
+  {
     free_command(command->next);
     command->next = NULL;
   }
@@ -80,7 +87,8 @@ int free_command(struct command_t *command) {
  * Show the command prompt
  * @return [description]
  */
-int show_prompt() {
+int show_prompt()
+{
   char cwd[1024], hostname[1024];
   gethostname(hostname, sizeof(hostname));
   getcwd(cwd, sizeof(cwd));
@@ -93,7 +101,8 @@ int show_prompt() {
  * @param  command [description]
  * @return         0
  */
-int parse_command(char *buf, struct command_t *command) {
+int parse_command(char *buf, struct command_t *command)
+{
   const char *splitters = " \t"; // split at whitespace
   int index, len;
   len = strlen(buf);
@@ -111,10 +120,13 @@ int parse_command(char *buf, struct command_t *command) {
     command->background = true;
 
   char *pch = strtok(buf, splitters);
-  if (pch == NULL) {
+  if (pch == NULL)
+  {
     command->name = (char *)malloc(1);
     command->name[0] = 0;
-  } else {
+  }
+  else
+  {
     command->name = (char *)malloc(strlen(pch) + 1);
     strcpy(command->name, pch);
   }
@@ -125,8 +137,9 @@ int parse_command(char *buf, struct command_t *command) {
   int target_saved = -1;
   int arg_index = 0;
   char temp_buf[1024], *arg;
-  while (1) {
- 
+  while (1)
+  {
+
     // tokenize input on splitters
     pch = strtok(NULL, splitters);
     if (!pch)
@@ -136,7 +149,7 @@ int parse_command(char *buf, struct command_t *command) {
     len = strlen(arg);
 
     if (len == 0)
-      continue; // empty arg, go for next
+      continue;                                          // empty arg, go for next
     while (len > 0 && strchr(splitters, arg[0]) != NULL) // trim left whitespace
     {
       arg++;
@@ -148,7 +161,8 @@ int parse_command(char *buf, struct command_t *command) {
       continue; // empty arg, go for next
 
     // piping to another command
-    if (strcmp(arg, "|") == 0) {
+    if (strcmp(arg, "|") == 0)
+    {
       struct command_t *c = malloc(sizeof(struct command_t));
       int l = strlen(pch);
       pch[l] = splitters[0]; // restore strtok termination
@@ -170,17 +184,20 @@ int parse_command(char *buf, struct command_t *command) {
     redirect_index = -1;
     if (arg[0] == '<')
       redirect_index = 0;
-      
 
-    if (arg[0] == '>') {
-      if (len > 1 && arg[1] == '>') {
+    if (arg[0] == '>')
+    {
+      if (len > 1 && arg[1] == '>')
+      {
         redirect_index = 2;
         arg++;
         len--;
-      } else
+      }
+      else
         redirect_index = 1;
     }
-    if (redirect_index != -1) {
+    if (redirect_index != -1)
+    {
       command->redirects[redirect_index] = malloc(len);
       strcpy(command->redirects[redirect_index], arg + 1);
       continue;
@@ -201,11 +218,11 @@ int parse_command(char *buf, struct command_t *command) {
   }
   command->arg_count = arg_index;
 
- 
   return 0;
 }
 
-void prompt_backspace() {
+void prompt_backspace()
+{
   putchar(8);   // go back 1
   putchar(' '); // write empty over
   putchar(8);   // go back 1 again
@@ -216,7 +233,8 @@ void prompt_backspace() {
  * @param  buf_size [description]
  * @return          [description]
  */
-int prompt(struct command_t *command) {
+int prompt(struct command_t *command)
+{
   int index = 0;
   char c;
   char buf[4096];
@@ -239,7 +257,8 @@ int prompt(struct command_t *command) {
 
   show_prompt();
   buf[0] = 0;
-  while (1) {
+  while (1)
+  {
     c = getchar();
     // printf("Keycode: %u\n", c); // DEBUG: uncomment for debugging
 
@@ -251,20 +270,23 @@ int prompt(struct command_t *command) {
 
     if (c == 127) // handle backspace
     {
-      if (index > 0) {
+      if (index > 0)
+      {
         prompt_backspace();
         index--;
       }
       continue;
     }
 
-    if (c == 27 || c == 91 || c == 66 || c == 67 || c == 68) {
+    if (c == 27 || c == 91 || c == 66 || c == 67 || c == 68)
+    {
       continue;
     }
 
     if (c == 65) // up arrow
     {
-      while (index > 0) {
+      while (index > 0)
+      {
         prompt_backspace();
         index--;
       }
@@ -307,8 +329,10 @@ int chatroom(struct command_t *command);
 int pomodoro(struct command_t *command);
 int fib(int n);
 void fibonacci_game(int arr[]);
-int main() {
-  while (1) {
+int main()
+{
+  while (1)
+  {
     struct command_t *command = malloc(sizeof(struct command_t));
     memset(command, 0, sizeof(struct command_t)); // set all bytes to 0
 
@@ -328,7 +352,8 @@ int main() {
   return 0;
 }
 
-int process_command(struct command_t *command) {
+int process_command(struct command_t *command)
+{
   int r;
   if (strcmp(command->name, "") == 0)
     return SUCCESS;
@@ -336,8 +361,10 @@ int process_command(struct command_t *command) {
   if (strcmp(command->name, "exit") == 0)
     return EXIT;
 
-  if (strcmp(command->name, "cd") == 0) {
-    if (command->arg_count > 0) {
+  if (strcmp(command->name, "cd") == 0)
+  {
+    if (command->arg_count > 0)
+    {
       r = chdir(command->args[0]);
       if (r == -1)
         printf("-%s: %s: %s\n", sysname, command->name, strerror(errno));
@@ -345,391 +372,445 @@ int process_command(struct command_t *command) {
     }
   }
 
-  
-  if(strcmp(command->name,"chatroom") == 0){
-  	if(command->arg_count == 3){
-  		chatroom(command);
-  	}
-  	return SUCCESS;
-   }
-   
-   if(strcmp(command->name, "pomodoro") == 0){
-   	if(command->arg_count == 3){
-  		pomodoro(command);
-  	}
-   	return SUCCESS;
-   }
-
-  if(strcmp(command->name, "myuniq" ) == 0){
-
-    char line[20][20]; //to store contents of txt file into array
-    FILE *fptr = NULL; //text file
-    int i = 0;
-    int tot = 0;
-
-    fptr = fopen(command->args[0], "r");
-    if(fptr == NULL) {
-      printf("The file you are looking for does not exist.");
-      return EXIT;
-    }
-    while(fgets(line[i], 20, fptr)) {
-        line[i][strlen(line[i]) - 1] = '\0';
-        i++;
-    }
-    tot = i;
-    int j;
-	printf("\n The content of the file %s  are : \n",command->args[0]);    
-    for(int i = 0; i < tot; ++i){
-       for(j = i+1; j < tot; j++) {
-         if(line[i][strlen(line[i]) - 1] == line[j][strlen(line[i]) - 1]) {
-            break;
-         }
-      }
-
-       if(j == tot)
-           printf(" %s\n", line[i]);
-    }
-
-  } 
-   if(strcmp(command->name,"fib") == 0){ //fibonacci game
-     int arr[GAME_ARRAY_SIZE] = { 0 }; //initialization
-        arr[1] = 1; 
-        fibonacci_game(arr);
-        getchar();
-	      return 0;
-
-  }
-
-  int num_pipes = 0;
-  int status;
-  //PART 2 - piping
-  if (command->next){
-    struct command_t *tmp = malloc(sizeof(struct command_t));
-    memcpy(tmp, command, sizeof(struct command_t));
-    
-    while(tmp->next){
-    	num_pipes++;
-    	tmp = tmp->next;
-    }
- 
-  }
-  printf("%d\n",num_pipes);
-  int fd_pipes[2*num_pipes];
-  
-  for(int i=0; i<num_pipes; i++){
-  	if (pipe(fd_pipes + i*2)==-1){
-  	     printf("Error creating the pipe!\n");
-  	     return UNKNOWN;
-  	}
-  }
-  
-  for(int i=0; i<num_pipes+1; i++){
-  
- 
-  pid_t pid = fork();
-  if (pid == 0) // child
+  if (strcmp(command->name, "chatroom") == 0)
   {
-    print_command(command);
-    printf("%d\n",i);
-    //if not last command
-    if(i!=num_pipes){
-    if(command->next){
-        dup2(fd_pipes[2*i + 1], STDOUT_FILENO);
-     }
-}
-     //if not first command, without a read 
-    if(i != 0 ){
-        dup2(fd_pipes[2*i-2], STDIN_FILENO);
-     }
-
-
-     for(int j = 0; j < 2*num_pipes; j++){
-          close(fd_pipes[j]);
-     }
-
-    redirection_part2(command);
-    
-    /// This shows how to do exec with environ (but is not available on MacOs)
-    // extern char** environ; // environment variables
-    // execvpe(command->name, command->args, environ); // exec+args+path+environ
-
-    /// This shows how to do exec with auto-path resolve
-    // add a NULL argument to the end of args, and the name to the beginning
-    // as required by exec
-
-    
-    // increase args size by 2
-    command->args = (char **)realloc(
-        command->args, sizeof(char *) * (command->arg_count += 2));
-
-    // shift everything forward by 1
-    for (int i = command->arg_count - 2; i > 0; --i)
-      command->args[i] = command->args[i - 1];
-
-    // set args[0] as a copy of name
-    command->args[0] = strdup(command->name);
-    // set args[arg_count-1] (last) to NULL
-    command->args[command->arg_count - 1] = NULL;
-
-
-    
-    // TODO: do your own exec with path resolving using execv()
-    // do so by replacing the execvp call below
-    //execvp(command->name, command->args); // exec+args+path
-    //PART 1
-    //print_command(command);
-    char bin_dir[100];
-    strcpy(bin_dir, "/usr/bin/"); //copy for bin direction
-    strcat(bin_dir, command->name);
-    execv(bin_dir, command->args);
-    
-    
-    exit(0);
-    
-  } 
-   if(command->next){
-    	command = command->next;
-    	continue;
-    }
-    
-  }
-    // TODO: implement background processes here
-    
-    for(int j = 0; j < 2 * num_pipes; j++){
-        close(fd_pipes[j]);
-    }
-    for(int k = 0; k < num_pipes +1; k++){ // wait for child process to finish
-    	wait(&status);
+    if (command->arg_count == 3)
+    {
+      chatroom(command);
     }
     return SUCCESS;
+  }
+
+  if (strcmp(command->name, "pomodoro") == 0)
+  {
+    if (command->arg_count == 3)
+    {
+      pomodoro(command);
+    }
+    return SUCCESS;
+  }
+
+  if (strcmp(command->name, "fib") == 0)
+  {                                 // fibonacci game
+    int arr[GAME_ARRAY_SIZE] = {0}; // initialization
+    arr[1] = 1;
+    fibonacci_game(arr);
+    getchar();
+    return 0;
+  }
+
+  if (strcmp(command->name, "wiseman") == 0)
+  {
+    char myS[255];
+
+    strcpy(myS, "hello this is a nice try");
+    int len = strlen(myS);
+
+    // if(espeak_Initialize(AUDIO_OUTPUT_SYNCH_PLAYBACK,0,NULL,espeakINITIALIZE_PHONEME_EVENTS) <0)
+    // {
+    //   puts("could not initialize espeak\n");
+    // return -1;
+    //}
+
+    // espeak_SetSynthCallback(SynthCallback);
+  }
+
   
- 
-  
+  int num_pipes = 0;
+  int status;
+  // PART 2 - piping
+  if (command->next)
+  {
+    struct command_t *tmp = malloc(sizeof(struct command_t));
+    memcpy(tmp, command, sizeof(struct command_t));
+
+    while (tmp->next)
+    {
+      num_pipes++;
+      tmp = tmp->next;
+    }
+  }
+  printf("Number of pipes %d\n", num_pipes);
+  printf("here\n");
+  int fd_pipes[2 * num_pipes];
+  for (int i = 0; i < num_pipes; i++)
+  {
+    if (pipe(fd_pipes + i * 2) == -1)
+    {
+      printf("Error creating the pipe!\n");
+      return UNKNOWN;
+    }
+  }
+
+  for (int i = 0; i < num_pipes + 1; i++)
+  {
+    pid_t pid = fork();
+   
+    if (pid == 0) // child
+    { 
+     
+      print_command(command);
+      printf("%d\n", i);
+      // if not last command
+      if (i != num_pipes)
+      {
+        if (command->next)
+        {
+          dup2(fd_pipes[2 * i + 1], STDOUT_FILENO);
+        }
+      }
+      // if not first command, without a read
+      if (i != 0)
+      {
+        dup2(fd_pipes[2 * i - 2], STDIN_FILENO);
+      }
+
+      for (int j = 0; j < 2 * num_pipes; j++)
+      {
+        close(fd_pipes[j]);
+      }
+
+      if (strcmp(command->name, "myuniq") == 0)
+      {
+       
+        char line[20][20]; // to store contents of txt file into array
+        int i = 0;
+        char ch;
+        int j = 0;
+        char buf[400];
+        read(STDIN_FILENO , buf ,  sizeof(buf));
+        //printf("%s\n",buf);
+        int l = 0;
+        char* split_request;
+       
+        split_request = strtok(buf,"\n");
+        while(split_request != NULL)
+        {
+         
+          strcpy(line[l],split_request);
+          l++;
+          i++;
+          split_request = strtok(NULL,"\n");
+
+        }
+        //for debugging
+        //printf("total %d",i); //this is the total number of string in txt file
+        //printf("inital\n");
+        //for(int tot =0;tot<i;tot++){
+          //  printf("%s\n",line[tot]);
+        //}
+         //printf("end\n\n\n\n");
+
+        int tot = i;
+
+        int count = 0;
+       
+        int check = 1;
+        for (int i = 0; i < tot; ++i)
+        { 
+          if(check!=0){ //if two consecutive strings are not equal
+               printf("%s\n",line[i]);
+          }
+          check = strcmp(line[i],line[i+1]);
+        } 
+      }
+
+      redirection_part2(command);
+
+      /// This shows how to do exec with environ (but is not available on MacOs)
+      // extern char** environ; // environment variables
+      // execvpe(command->name, command->args, environ); // exec+args+path+environ
+
+      /// This shows how to do exec with auto-path resolve
+      // add a NULL argument to the end of args, and the name to the beginning
+      // as required by exec
+
+      // increase args size by 2
+      command->args = (char **)realloc(
+          command->args, sizeof(char *) * (command->arg_count += 2));
+
+      // shift everything forward by 1
+      for (int i = command->arg_count - 2; i > 0; --i)
+        command->args[i] = command->args[i - 1];
+
+      // set args[0] as a copy of name
+      command->args[0] = strdup(command->name);
+      // set args[arg_count-1] (last) to NULL
+      command->args[command->arg_count - 1] = NULL;
+
+      // TODO: do your own exec with path resolving using execv()
+      // do so by replacing the execvp call below
+      // execvp(command->name, command->args); // exec+args+path
+      // PART 1
+      // print_command(command);
+      char bin_dir[100];
+      strcpy(bin_dir, "/usr/bin/"); // copy for bin direction
+      strcat(bin_dir, command->name);
+      execv(bin_dir, command->args);
+
+      exit(0);
+    }
+    if (command->next)
+    {
+      command = command->next;
+      continue;
+    }
+  }
+  // TODO: implement background processes here
+
+  for (int j = 0; j < 2 * num_pipes; j++)
+  {
+    close(fd_pipes[j]);
+  }
+  for (int k = 0; k < num_pipes + 1; k++)
+  { // wait for child process to finish
+    wait(&status);
+  }
+  return SUCCESS;
+
   printf("-%s: %s: command not found\n", sysname, command->name);
   return UNKNOWN;
 }
 
-  // TODO: your implementation here
-void redirection_part2(struct command_t *command){
-   //Dont put spaces after redirection symbols !!!!
-   if (command->redirects[0]!= NULL){ //for <
-     int in = open(command->redirects[0], O_RDONLY, 0644);
-     if(in == -1){
-    	  printf("Error opening redirect source file!\n");
-    	}
-    	dup2(in,STDIN_FILENO); //copy file to stdin
-    	close(in);
+// TODO: your implementation here
+void redirection_part2(struct command_t *command)
+{
+  // Dont put spaces after redirection symbols !!!!
+  if (command->redirects[0] != NULL)
+  { // for <
+    int in = open(command->redirects[0], O_RDONLY, 0644);
+    if (in == -1)
+    {
+      printf("Error opening redirect source file!\n");
     }
-    
-    if (command->redirects[1] != NULL){ //for > 
-    	int out = open(command->redirects[1], O_WRONLY | O_CREAT | O_TRUNC, 0644);
-    	if(out == -1){
-    		printf("Error opening redirect target file!\n");
-    	}
-    	dup2(out, STDOUT_FILENO); //copy file to stdout
-    	close(out);
-    }
-    
-    if (command->redirects[2] != NULL){ //for >>
-    	int out = open(command->redirects[2], O_WRONLY | O_CREAT | O_APPEND, 0644);
-    	if(out == -1){
-    		printf("Error opening redirect target file!\n");
-    	}
-    	dup2(out, STDOUT_FILENO); //copy file to stdout
-    	close(out);
-    }
-    
-    
+    dup2(in, STDIN_FILENO); // copy file to stdin
+    close(in);
   }
-  
 
-  
- int chatroom(struct command_t *command){
-    char chatroom_dir[100];
-    strcpy(chatroom_dir, "/tmp");
-    //create tmp folder if doesnt exist
-    if (mkdir(chatroom_dir,S_IRWXU | S_IRWXG | S_IRWXO )==-1){
-    	if(errno !=  EEXIST){
-    	   printf("Chatroom error tmp folder: %s\n",strerror(errno));
-    	}
+  if (command->redirects[1] != NULL)
+  { // for >
+    int out = open(command->redirects[1], O_WRONLY | O_CREAT | O_TRUNC, 0644);
+    if (out == -1)
+    {
+      printf("Error opening redirect target file!\n");
     }
-    strcat(chatroom_dir, "/chatroom-");
-    strcat(chatroom_dir, command->args[0]);
-    strcat(chatroom_dir, "/");
-   
-    //create room folder if doesnt exist
-    if (mkdir(chatroom_dir,S_IRWXU | S_IRWXG | S_IRWXO )==-1){
-    	if(errno !=  EEXIST){
-    	    printf("Chatroom error room folder: %s\n",strerror(errno));
-    	}
-    	
-    }
-   
-   char pipe_path[100];
-   //create user named pipe if doesnt exist
-   strcpy(pipe_path, chatroom_dir);
-   strcat(pipe_path, command->args[1]);
-   
-   int fd;
-   char buff_in[140];
-   char buff_out[140];
-   
-   mkfifo(pipe_path,0666);
-   if(errno !=  EEXIST){
-    	 printf("Chatroom error named pipe: %s\n",strerror(errno));
+    dup2(out, STDOUT_FILENO); // copy file to stdout
+    close(out);
+  }
 
-   }
-    
-    
-    printf("Welcome to %s!\n", command->args[0]);
-    pid_t pid =fork();
-    if (pid ==0){
-	    while(1){
-	    	printf("[%s] %s >",command->args[0], command->args[1]);
-	    	
-	    	//get user message
-	    	fgets(buff_in,140,stdin);
-	    	
-	    	char temp_buff[180];
-	    	strcpy(temp_buff, "[");
-	    	strcat(temp_buff, command->args[0]);
-	    	strcat(temp_buff, "] ");
-	    	strcat(temp_buff, command->args[1]);
-	    	strcat(temp_buff, ": ");
-	    	strcat(temp_buff, buff_in);
-	        
-	        
-	        DIR *d;
-	        struct dirent *dir;
-	        d = opendir(chatroom_dir);
-	        char* write_pipe = (char *)malloc(1*sizeof(char));
-	        write_pipe[0] = '\0';
-	        char *temp = (char *)malloc((strlen(write_pipe) + 1)*sizeof(char));
-	        if(d){
-	           while((dir = readdir(d)) != NULL){
-	         
-	        	
-	           	
-	           	if ((strcmp(dir->d_name, command->args[1]) !=0) && dir->d_name[0] != '.'){
-	           		//each time keep the room directory, append the username
-	           	        temp = (char *)realloc(temp,(strlen(chatroom_dir) + strlen(dir->d_name)+1)*sizeof(char));
-	           		strcat(temp,chatroom_dir);
-	           		strcat(temp,dir->d_name);
-	           		printf("%s \n", temp);
-	           		
-	    			fd = open(temp, O_WRONLY);
-	    			//write to other pipes
-	    			write(fd, temp_buff, strlen(temp_buff) +1);
-	    			
-	    			close(fd);
-	    			temp[0] =  '\0';
-	    			
-	           	}
-	           
-	           }
-	           closedir(d);
-	           	
-	        }
-	    	//printf("whiledaız\n");
-    	}
-    	
-    }else{
-    	while(1){
-    		//read from YOUR pipe only
-	    	fd = open(pipe_path,O_RDONLY);
-	    	read(fd, buff_out, sizeof(buff_out));
-	    	printf("%s", buff_out);
-	    	close(fd);
-    	
-    	}
+  if (command->redirects[2] != NULL)
+  { // for >>
+    int out = open(command->redirects[2], O_WRONLY | O_CREAT | O_APPEND, 0644);
+    if (out == -1)
+    {
+      printf("Error opening redirect target file!\n");
     }
-   
- }
- 
-  int motivation_prompt(int cycle_no, int max_cycle){
-      if(cycle_no ==1){
-          printf("Good luck working, keep it zen ⊹╰(⌣ʟ⌣)╯⊹\n");
-     } 
-     if(cycle_no == max_cycle){
-	  printf("Last cycle! You got this ᕙ(⌣◡⌣”)ᕗ\n");
-     }
-      
- }
- 
- int pomodoro(struct command_t *command){
-     int num_cycles = atoi(command->args[0]);
-     for(int i=1; i<=num_cycles; i++){
-     	 printf("\aEntering pomodoro cycle %d ... ",i);
-     	 
-     	 motivation_prompt(i, num_cycles);
-	  
-	 pid_t pid = fork();
-	 if(pid == 0){
-	 	int study_min = atoi(command->args[1]);
-	 	//printf("study ID: %d\n",getpid());
-	 	if((study_min-5) >0){
-		      sleep((study_min-5)*60);
-		      printf("Last five minutes... little goes a long way!\n");
-		      sleep(5*60);
-	 	}else{
-	 	      sleep(study_min*60);
-	 	}
-	
-	 	exit(0);
-	 }else{
-	 	wait(0);
-	 	if (i==num_cycles){
-	 	     printf("Great Job! You completed ALL your cycles ( ⌒o⌒)人(⌒-⌒\n");
-	 	}else{
-	 	     printf("Nice... You completed %d cycle(s) \n", i);
-	 	     //printf("break ID: %d\n",getpid());
-	 	     printf("\aNow its time for a %s minute break...\n", command->args[2]);
-	 	     int break_mins = atoi(command->args[2]);
-	 	     sleep(break_mins*60);
-	 	     
-	 	}
-	 }
-	 
-     }
- }
-
- int fib(int n) {
-	if (n <= 1)
-        return n;
-    return fib(n - 1) + fib(n - 2); //recursive function call
+    dup2(out, STDOUT_FILENO); // copy file to stdout
+    close(out);
+  }
 }
 
- void fibonacci_game(int arr[]){
-    printf("\n\nWelcome to the game of Fibonacci!\n\n"); 
-    int n = (rand() % GAME_ARRAY_SIZE); //randomly assign n
+int chatroom(struct command_t *command)
+{
+  char chatroom_dir[100];
+  strcpy(chatroom_dir, "/tmp");
+  // create tmp folder if doesnt exist
+  if (mkdir(chatroom_dir, S_IRWXU | S_IRWXG | S_IRWXO) == -1)
+  {
+    if (errno != EEXIST)
+    {
+      printf("Chatroom error tmp folder: %s\n", strerror(errno));
+    }
+  }
+  strcat(chatroom_dir, "/chatroom-");
+  strcat(chatroom_dir, command->args[0]);
+  strcat(chatroom_dir, "/");
 
-    int guess1;
-    int guess2;
-    int num_user=2;
-    int fibonacci = fib(n); //calling fib function
-    printf("Guess the %d th term\n",n);
+  // create room folder if doesnt exist
+  if (mkdir(chatroom_dir, S_IRWXU | S_IRWXG | S_IRWXO) == -1)
+  {
+    if (errno != EEXIST)
+    {
+      printf("Chatroom error room folder: %s\n", strerror(errno));
+    }
+  }
 
-    printf("Number of users %d\n",num_user); //set to 2
+  char pipe_path[100];
+  // create user named pipe if doesnt exist
+  strcpy(pipe_path, chatroom_dir);
+  strcat(pipe_path, command->args[1]);
 
-    printf("Guess of user 1:");
-    fflush(stdout);
-    scanf("%d",&guess1);
-    printf("Guess of user 2:");
-    fflush(stdout);
-    scanf("%d",&guess2);
+  int fd;
+  char buff_in[140];
+  char buff_out[140];
 
-       if (abs(fibonacci - guess1) < abs(fibonacci - guess2)) {
-            printf("Congratulations User 1!\n");
-       }
-       else if (abs(fibonacci - guess1)> abs(fibonacci - guess2)) {
-            printf("Congratulations User 2!\n");
-       }
-       else {
-            printf("Congratulations User 1 and User 2! You both win:))\n");
-       }
-       printf("The value of fib(%d) is %d", n, fibonacci); 
-       printf("\n");
+  mkfifo(pipe_path, 0666);
+  if (errno != EEXIST)
+  {
+    printf("Chatroom error named pipe: %s\n", strerror(errno));
+  }
+
+  printf("Welcome to %s!\n", command->args[0]);
+  pid_t pid = fork();
+  if (pid == 0)
+  {
+    while (1)
+    {
+      printf("[%s] %s >", command->args[0], command->args[1]);
+
+      // get user message
+      fgets(buff_in, 140, stdin);
+
+      char temp_buff[180];
+      strcpy(temp_buff, "[");
+      strcat(temp_buff, command->args[0]);
+      strcat(temp_buff, "] ");
+      strcat(temp_buff, command->args[1]);
+      strcat(temp_buff, ": ");
+      strcat(temp_buff, buff_in);
+
+      DIR *d;
+      struct dirent *dir;
+      d = opendir(chatroom_dir);
+      char *write_pipe = (char *)malloc(1 * sizeof(char));
+      write_pipe[0] = '\0';
+      char *temp = (char *)malloc((strlen(write_pipe) + 1) * sizeof(char));
+      if (d)
+      {
+        while ((dir = readdir(d)) != NULL)
+        {
+
+          if ((strcmp(dir->d_name, command->args[1]) != 0) && dir->d_name[0] != '.')
+          {
+            // each time keep the room directory, append the username
+            temp = (char *)realloc(temp, (strlen(chatroom_dir) + strlen(dir->d_name) + 1) * sizeof(char));
+            strcat(temp, chatroom_dir);
+            strcat(temp, dir->d_name);
+            printf("%s \n", temp);
+
+            fd = open(temp, O_WRONLY);
+            // write to other pipes
+            write(fd, temp_buff, strlen(temp_buff) + 1);
+
+            close(fd);
+            temp[0] = '\0';
+          }
+        }
+        closedir(d);
+      }
+      // printf("whiledaız\n");
+    }
+  }
+  else
+  {
+    while (1)
+    {
+      // read from YOUR pipe only
+      fd = open(pipe_path, O_RDONLY);
+      read(fd, buff_out, sizeof(buff_out));
+      printf("%s", buff_out);
+      close(fd);
+    }
+  }
 }
- 
 
-  
+int motivation_prompt(int cycle_no, int max_cycle)
+{
+  if (cycle_no == 1)
+  {
+    printf("Good luck working, keep it zen ⊹╰(⌣ʟ⌣)╯⊹\n");
+  }
+  if (cycle_no == max_cycle)
+  {
+    printf("Last cycle! You got this ᕙ(⌣◡⌣”)ᕗ\n");
+  }
+}
+
+int pomodoro(struct command_t *command)
+{
+  int num_cycles = atoi(command->args[0]);
+  for (int i = 1; i <= num_cycles; i++)
+  {
+    printf("\aEntering pomodoro cycle %d ... ", i);
+
+    motivation_prompt(i, num_cycles);
+
+    pid_t pid = fork();
+    if (pid == 0)
+    {
+      int study_min = atoi(command->args[1]);
+      // printf("study ID: %d\n",getpid());
+      if ((study_min - 5) > 0)
+      {
+        sleep((study_min - 5) * 60);
+        printf("Last five minutes... little goes a long way!\n");
+        sleep(5 * 60);
+      }
+      else
+      {
+        sleep(study_min * 60);
+      }
+
+      exit(0);
+    }
+    else
+    {
+      wait(0);
+      if (i == num_cycles)
+      {
+        printf("Great Job! You completed ALL your cycles ( ⌒o⌒)人(⌒-⌒\n");
+      }
+      else
+      {
+        printf("Nice... You completed %d cycle(s) \n", i);
+        // printf("break ID: %d\n",getpid());
+        printf("\aNow its time for a %s minute break...\n", command->args[2]);
+        int break_mins = atoi(command->args[2]);
+        sleep(break_mins * 60);
+      }
+    }
+  }
+}
+
+int fib(int n)
+{
+  if (n <= 1)
+    return n;
+  return fib(n - 1) + fib(n - 2); // recursive function call
+}
+
+void fibonacci_game(int arr[])
+{
+  printf("\n\nWelcome to the game of Fibonacci!\n\n");
+  int n = (rand() % GAME_ARRAY_SIZE); // randomly assign n
+
+  int guess1;
+  int guess2;
+  int num_user = 2;
+  int fibonacci = fib(n); // calling fib function
+  printf("Guess the %d th term\n", n);
+
+  printf("Number of users %d\n", num_user); // set to 2
+
+  printf("Guess of user 1:");
+  fflush(stdout);
+  scanf("%d", &guess1);
+  printf("Guess of user 2:");
+  fflush(stdout);
+  scanf("%d", &guess2);
+
+  if (abs(fibonacci - guess1) < abs(fibonacci - guess2))
+  {
+    printf("Congratulations User 1!\n");
+  }
+  else if (abs(fibonacci - guess1) > abs(fibonacci - guess2))
+  {
+    printf("Congratulations User 2!\n");
+  }
+  else
+  {
+    printf("Congratulations User 1 and User 2! You both win:))\n");
+  }
+  printf("The value of fib(%d) is %d", n, fibonacci);
+  printf("\n");
+}
