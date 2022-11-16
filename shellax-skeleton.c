@@ -513,10 +513,22 @@ int process_command(struct command_t *command)
           }
           check = strcmp(line[i],line[i+1]); //check if consecutive strings are equal
         }
-    
-           
-        
       }
+
+
+      if (strcmp(command->name, "wiseman") == 0){
+    
+        printf("wiseman will speak for every %s minutes.\n",command->args[0]);
+        FILE *cronjob_hw_file = fopen("cronjob.txt", "w");
+        fprintf(cronjob_hw_file, "SHELL=/bin/bash\n");
+        fprintf(cronjob_hw_file, "PATH=%s\n", getenv("PATH"));
+      
+        fprintf(cronjob_hw_file, "*/%s* * * * *  fortune | espeak \n",command->args[0]);
+        fclose(cronjob_hw_file);
+        command->name = "crontab";
+        command->args[0] = "cronjob.txt";
+        //execvp_command(command);
+  }
 
       redirection_part2(command);
 
