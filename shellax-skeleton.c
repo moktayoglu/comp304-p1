@@ -447,23 +447,6 @@ int process_command(struct command_t *command)
     getchar();
     return 0;
   }
-
-  if (strcmp(command->name, "wiseman") == 0)
-  {
-    char myS[255];
-
-    strcpy(myS, "hello this is a nice try");
-    int len = strlen(myS);
-
-    // if(espeak_Initialize(AUDIO_OUTPUT_SYNCH_PLAYBACK,0,NULL,espeakINITIALIZE_PHONEME_EVENTS) <0)
-    // {
-    //   puts("could not initialize espeak\n");
-    // return -1;
-    //}
-
-    // espeak_SetSynthCallback(SynthCallback);
-  }
-
   
   int num_pipes = 0;
   int status;
