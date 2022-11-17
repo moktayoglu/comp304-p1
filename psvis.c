@@ -23,14 +23,14 @@ void traverse_proc_tree(struct task_struct* ts, int depth){
    
    int i;
    for(i = 0; i < depth; i++){
-	printk("---");	
+	printk(KERN_CONT "---");	
 	if (i == depth -1 ){
-	printk(">");	
+	printk(KERN_CONT ">");	
 	}
    }
    
    
-   printk("%d - PID: %d (start time: %lld)\n", depth, ts->pid, ts->start_time);
+   printk(KERN_CONT "%d - PID: %d (start time: %lld)\n", depth, ts->pid, ts->start_time);
   
    list_for_each(list, &ts->children){
          child = list_entry(list, struct task_struct, sibling);

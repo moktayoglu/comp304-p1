@@ -374,7 +374,7 @@ int process_command(struct command_t *command)
 
   if (strcmp(command->name, "chatroom") == 0)
   {
-    if (command->arg_count == 3)
+    if (command->arg_count == 2)
     {
       chatroom(command);
     }
@@ -394,48 +394,60 @@ int process_command(struct command_t *command)
   
   	if(command->arg_count == 2){
   	
-  	     pid_t pid_ps = fork();
+  	     pid_t pid_dmesg = fork();
   	     
-  	     if (pid_ps==0){//Loading the psvis module
-  	     	
-  	     	char pass_pid[20];
-  	     	strcpy(pass_pid, "pid=");
-  	     	strcat(pass_pid,command->args[0]);
-  	     	char *cmd_invoke[]={"sudo", "insmod", "psvis.ko", pass_pid, NULL};
-  	     	printf("invoke\n");
-  	     	execvp(cmd_invoke[0], cmd_invoke);
+  	     if(pid_dmesg == 0){
+  	     	char *clear_msg_cmd[] = {"sudo", "dmesg", "-c", NULL};
+  	     	execvp(clear_msg_cmd[0], clear_msg_cmd);
   	     	
   	     
   	     }else{
-  	     	wait(0);
+  	
+  	     	pid_t pid_ps = fork();
   	     
-  	     	pid_t pid = fork();
+  	     	if (pid_ps==0){//Loading the psvis module
   	     	
-  	     	if (pid == 0){
-  	     	char *com_remove[]={"sudo", "rmmod", "psvis", NULL};
-  	     	//remove kernel
+  	     		char pass_pid[20];
+  	     		strcpy(pass_pid, "pid=");
+  	     		strcat(pass_pid,command->args[0]);
+  	     		char *cmd_invoke[]={"sudo", "insmod", "psvis.ko", pass_pid, NULL};
+  	     		//printf("invoke\n");
+  	     		execvp(cmd_invoke[0], cmd_invoke);
   	     	
-  	     	execvp(com_remove[0],com_remove);
-  	     	
+  	     
   	     	}else{
   	     		wait(0);
-  	     		//redirect output
-  	     		int out = open(command->args[1], O_WRONLY | O_CREAT | O_TRUNC, 0644);
-    	        	if (out == -1){
-   		 
-     		    	printf("Error opening redirect target file!\n");
-    			}
-    			dup2(out, STDOUT_FILENO); // copy file to stdout
-    			close(out);
-    			char *dmesg_out[]={"sudo", "dmesg",NULL};
-  	     		execvp(dmesg_out[0], dmesg_out);
+  	     
+  	     		pid_t pid = fork();
   	     	
-  	     	}
+  	     		if (pid == 0){
+  	     		char *com_remove[]={"sudo", "rmmod", "psvis", NULL};
+  	     		//remove kernel
+  	     	
+  	     		execvp(com_remove[0],com_remove);
+  	     		
+  	     		}else{
+  	     			wait(0);
+  	     			//redirect output
+  	     			int out = open(command->args[1], O_WRONLY | O_CREAT | O_TRUNC, 0644);
+    	        		if (out == -1){
+   		 
+     		    			printf("Error opening redirect target file!\n");
+    				}
+    				dup2(out, STDOUT_FILENO); // copy file to stdout
+    				close(out);
+    				char *dmesg_out[]={"sudo", "dmesg",NULL};
+  	     			execvp(dmesg_out[0], dmesg_out);
+  	     			
+  	     	
+  	     		}
   
+  	     	}
   	     }
   	   
   	
   	}
+  	return SUCCESS;
   	
   }
 
@@ -481,7 +493,7 @@ int process_command(struct command_t *command)
     if (pid == 0) // child
     { 
      
-      print_command(command);
+      //print_command(command);
       //printf("%d\n", i);
       // if not last command
       if (i != num_pipes)
@@ -709,7 +721,7 @@ int chatroom(struct command_t *command)
       fgets(buff_in, 140, stdin);
 
       char temp_buff[180];
-      strcpy(temp_buff, "[");
+      strcpy(temp_buff, "\n[");
       strcat(temp_buff, command->args[0]);
       strcat(temp_buff, "] ");
       strcat(temp_buff, command->args[1]);
@@ -733,7 +745,7 @@ int chatroom(struct command_t *command)
             temp = (char *)realloc(temp, (strlen(chatroom_dir) + strlen(dir->d_name) + 1) * sizeof(char));
             strcat(temp, chatroom_dir);
             strcat(temp, dir->d_name);
-            printf("%s \n", temp);
+            //printf("%s \n", temp);
 
             fd = open(temp, O_WRONLY);
             // write to other pipes
