@@ -402,7 +402,7 @@ int process_command(struct command_t *command)
   	     	
   	     
   	     }else{
-  	
+  		wait(0);
   	     	pid_t pid_ps = fork();
   	     
   	     	if (pid_ps==0){//Loading the psvis module
