@@ -41,22 +41,22 @@ struct command_t
 void print_command(struct command_t *command)
 {
   int i = 0;
-  //printf("Command: <%s>\n", command->name);
-  //printf("\tIs Background: %s\n", command->background ? "yes" : "no");
-  //printf("\tNeeds Auto-complete: %s\n", command->auto_complete ? "yes" : "no");
-  //printf("\tRedirects:\n");
-  //for (i = 0; i < 3; i++)
-  //{
-    //printf("\t\t%d: %s\n", i, command->redirects[i] ? command->redirects[i] : "N/A");
-  //}
-  //printf("\tArguments (%d):\n", command->arg_count);
-  //for (i = 0; i < command->arg_count; ++i)
-    //printf("\t\tArg %d: %s\n", i, command->args[i]);
-  //if (command->next)
-  //{
-    //printf("\tPiped to: %s\n", command->next->name);
-    // print_command(command->next);
-  //}
+  printf("Command: <%s>\n", command->name);
+  printf("\tIs Background: %s\n", command->background ? "yes" : "no");
+  printf("\tNeeds Auto-complete: %s\n", command->auto_complete ? "yes" : "no");
+  printf("\tRedirects:\n");
+  for (i = 0; i < 3; i++)
+  {
+    printf("\t\t%d: %s\n", i, command->redirects[i] ? command->redirects[i] : "N/A");
+  }
+  printf("\tArguments (%d):\n", command->arg_count);
+  for (i = 0; i < command->arg_count; ++i)
+    printf("\t\tArg %d: %s\n", i, command->args[i]);
+  if (command->next)
+  {
+    printf("\tPiped to: %s\n", command->next->name);
+    print_command(command->next);
+  }
 }
 /**
  * Release allocated memory of a command
@@ -389,6 +389,55 @@ int process_command(struct command_t *command)
     }
     return SUCCESS;
   }
+  
+  if(strcmp(command->name, "psvis") == 0 ){
+  
+  	if(command->arg_count == 2){
+  	
+  	     pid_t pid_ps = fork();
+  	     
+  	     if (pid_ps==0){//Loading the psvis module
+  	     	
+  	     	char pass_pid[20];
+  	     	strcpy(pass_pid, "pid=");
+  	     	strcat(pass_pid,command->args[0]);
+  	     	char *cmd_invoke[]={"sudo", "insmod", "psvis.ko", pass_pid, NULL};
+  	     	printf("invoke\n");
+  	     	execvp(cmd_invoke[0], cmd_invoke);
+  	     	
+  	     
+  	     }else{
+  	     	wait(0);
+  	     
+  	     	pid_t pid = fork();
+  	     	
+  	     	if (pid == 0){
+  	     	char *com_remove[]={"sudo", "rmmod", "psvis", NULL};
+  	     	//remove kernel
+  	     	
+  	     	execvp(com_remove[0],com_remove);
+  	     	
+  	     	}else{
+  	     		wait(0);
+  	     		//redirect output
+  	     		int out = open(command->args[1], O_WRONLY | O_CREAT | O_TRUNC, 0644);
+    	        	if (out == -1){
+   		 
+     		    	printf("Error opening redirect target file!\n");
+    			}
+    			dup2(out, STDOUT_FILENO); // copy file to stdout
+    			close(out);
+    			char *dmesg_out[]={"sudo", "dmesg",NULL};
+  	     		execvp(dmesg_out[0], dmesg_out);
+  	     	
+  	     	}
+  
+  	     }
+  	   
+  	
+  	}
+  	
+  }
 
   if (strcmp(command->name, "fib") == 0)
   {                                 // fibonacci game
@@ -527,9 +576,9 @@ int process_command(struct command_t *command)
         fclose(cronjob_hw_file);
         command->name = "crontab";
         command->args[0] = "cronjob.txt";
-        //execvp_command(command);
+ 
   }
-
+  
       redirection_part2(command);
 
       /// This shows how to do exec with environ (but is not available on MacOs)
@@ -713,7 +762,6 @@ int chatroom(struct command_t *command)
         }
         closedir(d);
       }
-      // printf("whiledaız\n");
     }
   }
   else
